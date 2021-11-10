@@ -20,26 +20,47 @@ class InvertedIndex:
         self.tokens_qty = 0
 
     def process_text(self, text_file, _file_count):
+        """
+        This methods process a text file, adds tokens to a dictionary, and when total of tokens on dictionary reaches
+        1000000, call a function to write data on disk.
+        :param text_file: file pointer
+        :param _file_count: int
+
+        """
         if self.tokens_qty < 1000000:
             words_to_add = text_tokenizer(text_file)
             for i, word in enumerate(words_to_add):
+                #    if token(word) is not in dictionary or there is no data to this token, add token to dictionary,
+                #    initialize WordInDocument object, and document number to it.
                 if word not in self.dictionary or not self.dictionary[word]:
                     wid = WordInDocument(_file_count)
                     self.dictionary[word] = [wid]
+                #    if token exists, check if document number is the last instance of wid doc_number. If does not exist
+                #    initialize object and append it to end of list.
                 elif self.dictionary[word][-1].doc_number != _file_count:
                     wid = WordInDocument(_file_count)
                     self.dictionary[word].append(wid)
+                #   set wid to be the last element of list for the token
                 else:
                     wid = self.dictionary[word][-1]
+                #   call method to insert the positions of tokens in the text to dictionary
                 wid.insert_to_list(i)
                 self.tokens_qty += 1
         else:
+            #  when limit (total number of tokens in dictionary) is reached, calls method to write partial index
+            #  to disc, increment dumb_to_disk counter by one, reset tokens_qty counter.
             print('limit reached')
             self.write_partial_index()
             self.dump_to_disk += 1
             self.tokens_qty = 0
 
     def write_partial_index(self):
+        """
+        This method access dictionary, sort it alphabetically. and for each token(word), creates a string containing
+        the word, document numbers,  and the positions  the token where found on the text. Then, creates a text file
+        for each alphanumeric character and round of dumping words to disk, and writes the strings to file based on the
+        first letter of token(word).
+        """
         str_to_file = ''
         cur_letter = ''
         fp = None
@@ -62,25 +83,31 @@ class InvertedIndex:
                 str_to_file = str_to_file + f'{word} {elements_str}\n'
                 self.dictionary[word] = []
 
-    def size_of_dict(self):
-        total_words = len(self.dictionary)
-        total_positions = 0
-        for w in self.dictionary:
-            for p in self.dictionary[w]:
-                total_positions = total_positions + len(p.appearance)
-        total_size = total_words + total_positions
-        return total_size
-
-    def print_dict(self):
-        for word in sorted(self.dictionary):
-            print(f'{word} ', end="", flush=True)
-            for elem in self.dictionary[word]:
-                print(f'{elem.doc_number}:{len(elem.appearance)}:', end="", flush=True)
-                positions = elem.appearance
-                print(*positions, sep=',', end=';')
-            print('')
+    # def size_of_dict(self):
+    #     total_words = len(self.dictionary)
+    #     total_positions = 0
+    #     for w in self.dictionary:
+    #         for p in self.dictionary[w]:
+    #             total_positions = total_positions + len(p.appearance)
+    #     total_size = total_words + total_positions
+    #     return total_size
+    #
+    # def print_dict(self):
+    #     for word in sorted(self.dictionary):
+    #         print(f'{word} ', end="", flush=True)
+    #         for elem in self.dictionary[word]:
+    #             print(f'{elem.doc_number}:{len(elem.appearance)}:', end="", flush=True)
+    #             positions = elem.appearance
+    #             print(*positions, sep=',', end=';')
+    #         print('')
 
     def merge_inverted_index(self):
+        """
+        This method gets the text files containing partial index and merges them in a final index. For each alphanumeric
+        character, tokenizes the text by line and splits tokens between word and word's location/positions. Add the
+        tokens to a new dictionary. Then call method to write a final index.
+
+        """
         self.dictionary = defaultdict(str)
         for i in [chr(x) for x in list(range(48, 58)) + list(range(97, 127))]:
             for idx_file in glob.glob(f'SWE247P project/inv-index/temp_files/**/{i}*.txt', recursive=True):
@@ -95,6 +122,11 @@ class InvertedIndex:
             # print(self.dictionary)
 
     def write_index_file(self):
+        """
+        This method receives a dictionary, sorts it alphabetically, creates a string containing word and word's
+        information, for each alphanumeric character creates a text file, and writes strings to text to create a final
+        index file.
+        """
         line_to_index = ''
         cur_letter = '0'
         fp = None
@@ -110,19 +142,7 @@ class InvertedIndex:
                     line_to_index = ''
                 cur_letter = token[0]
                 line_to_index = (token + " " + str(self.dictionary[token] + '\n'))
-
             print(line_to_index)
-
-
-
-            # elements = ''.join(str(x) for x in self.dictionary[word])
-            # line_to_index = word + ' ' + elements
-
-            # for elem in self.dictionary[word]:
-
-            #     position = ''.join(str(x) for x in elem.appearance)
-            #     element = element + f'{elem.doc_number}:{len(elem.appearance)}:{position};'
-            # end_line = end_line + f'{word} {element}\n'
 
 
 class WordInDocument:
@@ -140,7 +160,6 @@ def text_tokenizer(text_to_tokenize):
 
 
 if __name__ == '__main__':
-    my_path = 'C:\\Users\\paula\\PycharmProjects\\InvertedIndex\\SWE247P project\\input-transform\\'
     files = []
     file_count = 0
     index = InvertedIndex()
@@ -150,7 +169,4 @@ if __name__ == '__main__':
         with open(os.path.join(os.getcwd(), filename), 'r') as myfile:
             index.process_text(myfile, file_count)
         file_count += 1
-    # index.print_dict()
-    # print(files)
-    # index.write_index_file()
     InvertedIndex().merge_inverted_index()

@@ -8,7 +8,6 @@
 """
 import glob
 import os
-import re
 from collections import defaultdict
 from typing import List, Dict
 
@@ -27,7 +26,8 @@ class InvertedIndex:
         :param _file_count: int
 
         """
-        if self.tokens_qty < 1000000:
+
+        if self.tokens_qty < 10000000:
             words_to_add = text_tokenizer(text_file)
             for i, word in enumerate(words_to_add):
                 #    if token(word) is not in dictionary or there is no data to this token, add token to dictionary,
@@ -63,7 +63,6 @@ class InvertedIndex:
         """
         str_to_file = ''
         cur_letter = ''
-        fp = None
         for word in sorted(self.dictionary):
             if self.dictionary[word]:
                 if word[0] != cur_letter:
@@ -82,24 +81,14 @@ class InvertedIndex:
                     elements_str = elements_str + f'{elem.doc_number}:{len(elem.appearance)}:{positions_str};'
                 str_to_file = str_to_file + f'{word} {elements_str}\n'
                 self.dictionary[word] = []
-
-    # def size_of_dict(self):
-    #     total_words = len(self.dictionary)
-    #     total_positions = 0
-    #     for w in self.dictionary:
-    #         for p in self.dictionary[w]:
-    #             total_positions = total_positions + len(p.appearance)
-    #     total_size = total_words + total_positions
-    #     return total_size
-    #
-    # def print_dict(self):
-    #     for word in sorted(self.dictionary):
-    #         print(f'{word} ', end="", flush=True)
-    #         for elem in self.dictionary[word]:
-    #             print(f'{elem.doc_number}:{len(elem.appearance)}:', end="", flush=True)
-    #             positions = elem.appearance
-    #             print(*positions, sep=',', end=';')
-    #         print('')
+        else:
+            # z is the last letter
+            fp = open(
+                os.path.join('SWE247P project', 'inv-index', 'temp_files',
+                             'z' + "-" + str(self.dump_to_disk) +
+                             '.txt'), 'w')
+            fp.write(str_to_file)
+            fp.close()
 
     def merge_inverted_index(self):
         """
@@ -109,7 +98,7 @@ class InvertedIndex:
 
         """
         self.dictionary = defaultdict(str)
-        for i in [chr(x) for x in list(range(48, 58)) + list(range(97, 127))]:
+        for i in [chr(x) for x in list(range(48, 58)) + list(range(97, 123))]:
             for idx_file in glob.glob(f'SWE247P project/inv-index/temp_files/**/{i}*.txt', recursive=True):
                 with open(idx_file) as curr_file:
                     for line in curr_file:
@@ -117,32 +106,26 @@ class InvertedIndex:
                         tk = tokens[0]
                         tk_info = tokens[1]
                         self.dictionary[tk] += tk_info
-            self.write_index_file()
+                # os.remove(idx_file)
+            self.write_merged_index_file(i)
             self.dictionary = defaultdict(str)
             # print(self.dictionary)
 
-    def write_index_file(self):
+    def write_merged_index_file(self, cur_letter):
         """
         This method receives a dictionary, sorts it alphabetically, creates a string containing word and word's
         information, for each alphanumeric character creates a text file, and writes strings to text to create a final
         index file.
+
+        Receives a dictionary with a single first character ('a' or 'b' or 'c' ..)
         """
         line_to_index = ''
-        cur_letter = '0'
-        fp = None
         for token in sorted(self.dictionary):
-            if self.dictionary[token]:
-                if token[0] == cur_letter and line_to_index != '':
-                    # if cur_letter:
-                    fp = open(
-                        os.path.join('SWE247P project', 'inv-index',
-                                     token[0] + '.txt'), 'a')
-                    fp.writelines(line_to_index)
-                    fp.close()
-                    line_to_index = ''
-                cur_letter = token[0]
-                line_to_index = (token + " " + str(self.dictionary[token] + '\n'))
-            print(line_to_index)
+            line_to_index += (token + " " + str(self.dictionary[token]) + '\n')
+        fp = open(os.path.join('SWE247P project', 'inv-index', cur_letter + '.txt'), 'w')
+        fp.writelines(line_to_index)
+        fp.close()
+        print(line_to_index)
 
 
 class WordInDocument:
@@ -163,10 +146,16 @@ if __name__ == '__main__':
     files = []
     file_count = 0
     index = InvertedIndex()
+    if not os.path.exists('SWE247P project/inv-index/temp_files'):
+        os.mkdir('SWE247P project/inv-index/temp_files')
     for filename in glob.glob('SWE247P project/input-transform/**/*.txt', recursive=True):
         file_number = filename[-9:-4]
         files.append({'file_number': file_number, 'file_path': filename})
         with open(os.path.join(os.getcwd(), filename), 'r') as myfile:
             index.process_text(myfile, file_count)
         file_count += 1
+    # write remaining entries
+    index.write_partial_index()
     InvertedIndex().merge_inverted_index()
+    # os.rmdir('SWE247P project/inv-index/temp_files')
+

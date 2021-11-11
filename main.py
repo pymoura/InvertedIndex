@@ -106,18 +106,15 @@ class InvertedIndex:
                         tk = tokens[0]
                         tk_info = tokens[1]
                         self.dictionary[tk] += tk_info
-                # os.remove(idx_file)
+                os.remove(idx_file)
             self.write_merged_index_file(i)
             self.dictionary = defaultdict(str)
-            # print(self.dictionary)
 
     def write_merged_index_file(self, cur_letter):
         """
-        This method receives a dictionary, sorts it alphabetically, creates a string containing word and word's
-        information, for each alphanumeric character creates a text file, and writes strings to text to create a final
-        index file.
+        This method receives a dictionary with a single first character ('a' or 'b' or 'c' ..), sorts it, creates a
+        string containing word and word's information, creates a text file, and writes all strings it.
 
-        Receives a dictionary with a single first character ('a' or 'b' or 'c' ..)
         """
         line_to_index = ''
         for token in sorted(self.dictionary):
@@ -157,5 +154,5 @@ if __name__ == '__main__':
     # write remaining entries
     index.write_partial_index()
     InvertedIndex().merge_inverted_index()
-    # os.rmdir('SWE247P project/inv-index/temp_files')
+    os.rmdir('SWE247P project/inv-index/temp_files')
 

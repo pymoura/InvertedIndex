@@ -10,6 +10,7 @@ import glob
 import os
 from collections import defaultdict
 from typing import List, Dict
+import json
 
 
 class InvertedIndex:
@@ -142,15 +143,19 @@ def text_tokenizer(text_to_tokenize):
 if __name__ == '__main__':
     files = []
     file_count = 0
+    doc_dict = {}
     index = InvertedIndex()
     if not os.path.exists('SWE247P project/inv-index/temp_files'):
         os.mkdir('SWE247P project/inv-index/temp_files')
-    for filename in glob.glob('SWE247P project/input-transform/**/*.txt', recursive=True):
-        file_number = filename[-9:-4]
-        files.append({'file_number': file_number, 'file_path': filename})
+    for filename in glob.glob('../infoRetrieval/SWE247P project/input-transform/**/*.txt', recursive=True):
         with open(os.path.join(os.getcwd(), filename), 'r') as myfile:
             index.process_text(myfile, file_count)
+        # collect document number and file path
+        doc_dict[file_count] = filename
         file_count += 1
+    # create a lookup table json file
+    with open('SWE247P project/inv-index/lookuptable.json', 'w') as fp:
+        json.dump(doc_dict, fp)
     # write remaining entries
     index.write_partial_index()
     InvertedIndex().merge_inverted_index()
